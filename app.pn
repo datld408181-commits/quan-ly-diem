@@ -1,1 +1,70 @@
 
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# 1. Chuẩn bị dữ liệu
+data = {
+    'Ho_va_ten': ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Lan', 'Minh', 'Nam', 'Phuc', 'Trang'],
+    'Chuyen_can': [8.0, 9.0, 7.0, 9.5, 7.5, 6.0, 9.0, 7.0, 7.5, 9.5],
+    'Giua_ky': [7.5, 8.0, 6.5, 9.0, 7.0, 6.0, 8.5, 7.0, 7.5, 9.0],
+    'Cuoi_ky': [8.0, 8.5, 6.5, 9.0, 7.5, 6.0, 8.5, 7.0, 7.5, 9.0]
+}
+
+df = pd.DataFrame(data)
+df['Tong_ket'] = 0.2 * df['Chuyen_can'] + 0.3 * df['Giua_ky'] + 0.5 * df['Cuoi_ky']
+
+def xep_loai(dtk):
+    if dtk >= 8.5: return 'Giỏi'
+    elif dtk >= 7.0: return 'Khá'
+    elif dtk >= 5.0: return 'Trung bình'
+    else: return 'Yếu'
+
+df['Xep_loai'] = df['Tong_ket'].apply(xep_loai)
+
+# 2. Giao diện Web App Streamlit
+st.title("QUẢN LÝ ĐIỂM SINH VIÊN")
+
+st.subheader("Bảng điểm chi tiết của 10 sinh viên")
+st.dataframe(df)
+
+st.subheader("Thống kê chung của lớp")
+dtk_tb = df['Tong_ket'].mean()
+max_sv = df.loc[df['Tong_ket'].idxmax()]
+min_sv = df.loc[df['Tong_ket'].idxmin()]
+so_sv_dat = (df['Tong_ket'] >= 5.0).sum()
+
+col1, col2 = st.columns(2)
+with col1:
+    st.metric(label="Điểm trung bình lớp", value=f"{dtk_tb:.2f}")
+    st.metric(label="Số sinh viên đạt (>= 5.0)", value=so_sv_dat)
+with col2:
+    st.metric(label="SV cao điểm nhất", value=f"{max_sv['Ho_va_ten']} ({max_sv['Tong_ket']:.2f})")
+    st.metric(label="SV thấp điểm nhất", value=f"{min_sv['Ho_va_ten']} ({min_sv['Tong_ket']:.2f})")
+
+st.subheader("Tra cứu thông tin cá nhân sinh viên")
+selected_student = st.selectbox("Chọn tên sinh viên:", df['Ho_va_ten'])
+student_info = df[df['Ho_va_ten'] == selected_student].iloc[0]
+
+st.info(f"""
+- **Họ và tên:** {student_info['Ho_va_ten']}
+- **Điểm chuyên cần:** {student_info['Chuyen_can']}
+- **Điểm giữa kỳ:** {student_info['Giua_ky']}
+- **Điểm cuối kỳ:** {student_info['Cuoi_ky']}
+- **Điểm tổng kết:** **{student_info['Tong_ket']:.2f}**
+- **Xếp loại:** **{student_info['Xep_loai']}**
+""")
+
+st.subheader("Biểu đồ cột điểm tổng kết sinh viên")
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.bar(df['Ho_va_ten'], df['Tong_ket'], color='skyblue', edgecolor='black')
+ax.set_xlabel("Sinh viên")
+ax.set_ylabel("Điểm tổng kết")
+ax.set_ylim(0, 10)
+for i, v in enumerate(df['Tong_ket']):
+    ax.text(i, v + 0.1, f"{v:.1f}", ha='center', fontsize=9)
+st.pyplot(fig)
+
+# Chân trang hiển thị thông tin người tạo
+st.markdown("---")
+st.markdown("<p style='text-align: center; color: gray; font-size: small;'>Người tạo: Nguyễn Văn A - MSSV: 12345678</p>", unsafe_allow_html=True)
